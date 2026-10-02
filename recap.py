@@ -24,7 +24,6 @@ CANALI = [
 # Siti con feed RSS/Atom: (nome, url del feed). Se un feed non risponde finisce in "Problemi oggi".
 SITI = [
     ("OpenAI", "https://openai.com/news/rss.xml"),
-    ("Google DeepMind", "https://deepmind.google/blog/rss.xml"),
     ("Google AI", "https://blog.google/technology/ai/rss/"),
     ("Hugging Face", "https://huggingface.co/blog/feed.xml"),
     ("The Verge", "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"),
@@ -225,7 +224,7 @@ def recap_gemini(prompt):
                 break
             except urllib.error.HTTPError as ex:
                 ultimo = f"{modello}: HTTP {ex.code} {ex.read()[:150].decode('utf-8', 'replace')}"
-                if ex.code == 429 and tentativo == 0:
+                if ex.code in (429, 500, 503) and tentativo == 0:  # limite al minuto o modello sovraccarico
                     time.sleep(25)
                     continue
                 break
@@ -242,6 +241,9 @@ def recap_claude(prompt):
     return r.content[0].text.strip()
 
 
+RECAP_FALLITI = []
+
+
 def recap(v, prompt):
     base = descrizione_breve(v["desc"])
     try:
@@ -252,7 +254,8 @@ def recap(v, prompt):
         return base
     except Exception as ex:  # un recap fallito non deve bloccare il giornale
         print(f"[recap errore] {v['titolo']}: {ex}", file=sys.stderr)
-        return base + f" [errore recap: {str(ex)[:120]}]"
+        RECAP_FALLITI.append(str(ex)[:150])
+        return base
 
 
 # ---------------------------------------------------------------- giornale (HTML -> PDF)
@@ -370,6 +373,9 @@ def main():
         p["n"] = n
         p["recap"] = recap(p, PROMPT_VIDEO if p["tipo"] == "video" else PROMPT_ARTICOLO)
         p["img"] = immagine_data_uri(p.get("img_url"))
+
+    if RECAP_FALLITI:
+        errori.append(f"{len(RECAP_FALLITI)} recap non generati (mostrata la descrizione): {RECAP_FALLITI[0]}")
 
     oggetto = f"Il Giornalino AI - {adesso.strftime('%d/%m/%Y')}"
     pdf = None
