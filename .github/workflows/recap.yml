@@ -1,7 +1,7 @@
 name: Recap AI mattutino
 on:
   schedule:
-    - cron: "0 5 * * *"   # 05:00 UTC = 07:00 ora italiana legale (dal 25/10 usa "0 6 * * *")
+    - cron: "17 4 * * *"   # 04:17 UTC = 06:17 ora legale / 05:17 ora solare. Minuto "strano" apposta: alle :00 GitHub ritarda molto
   workflow_dispatch: {}    # permette di lanciarlo a mano dal tasto "Run workflow"
 jobs:
   recap:
